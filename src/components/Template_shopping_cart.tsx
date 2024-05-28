@@ -1,214 +1,232 @@
-import React from "react";
-import { useEffect, useState } from "react";
-import "./Style.css";
-import "./bootstrap.min.css";
+import React, { useEffect, useState } from "react";
 import ProductList from "./ProductList";
-import Cart from "./Card";
-import Modal from "./Modal";
-import Alert from "react-bootstrap/Alert";
-interface Product {
+import Cart from "./Cart";
+import "./bootstrap.min.css";
+import "./Style.css";
+type Product = {
   id: number;
+  img: string;
+  name: string;
+  detail: string;
+  price: number;
+  quantity: number;
+};
+
+type CartProduct = {
+  id: number;
+  idProduct: number;
   name: string;
   price: number;
-  description: string;
   quantity: number;
-  imgUrl: string;
-  value: number;
-}
+  quantityChange: number;
+};
 
-export default function Template_shopping_cart() {
-  const [addSuccess, setAddSuccess] = useState<boolean>(false);
-  const [updateSuccess, setUpdateSucccess] = useState<boolean>(false);
-  const [products, setProducts] = useState<Product[]>(() => {
-    const data = localStorage.getItem("products");
-    return data ? JSON.parse(data) : [];
-  });
-  const [cart, setCart] = useState<Product[]>(() => {
-    const data = localStorage.getItem("cart");
-    return data ? JSON.parse(data) : [];
-  });
-  const addToCart = (product: Product) => {
-    setAddSuccess(true);
-    const existingItem = cart.find((item) => item.id === product.id);
-    if (existingItem) {
-      setCart(
-        cart.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        )
-      );
-      setProducts(
-        products.map((item) => {
-          if (item.id === product.id) {
-            return { ...item, quantity: item.quantity - 1 };
-          } else {
-            return item;
-          }
-        })
-      );
-    } else {
-      setCart([...cart, { ...product, quantity: 1 }]);
-      setProducts([
-        ...products,
-        { ...product, quantity: product.quantity - 1 },
-      ]);
-    }
-    setTimeout(() => {
-      setAddSuccess(false);
-    }, 1000);
-  };
-  const updateQuantity = (id: number, quantity: number) => {
-    setUpdateSucccess(true);
-    setCart(
-      cart.map((item) => {
-        if (item.id === id) {
-          return { ...item, quantity: quantity };
-        }
-        return item;
-      })
-    );
-    setProducts(
-      products.map((item) => {
-        if (item.id === id) {
-          return { ...item, quantity: item.quantity - (quantity || 0) };
-        } else {
-          return { ...item };
-        }
-      })
-    );
-    setTimeout(() => {
-      setUpdateSucccess(false);
-    }, 1000);
-  };
-  const removeFromCart = (id: number) => {
-    setCart(cart.filter((item) => item.id !== id));
-  };
+export default function ShoppingCart() {
+  const productListFix: Product[] = [
+    {
+      id: 1,
+      img: "public/bread.jpg",
+      name: "Pizza",
+      detail:
+        "Lorem ipsum dolor sit amet, consectetur adipisicing elit. At dicta asperiores veniam repellat unde debitis quisquam magnam magni ut deleniti!",
+      price: 30,
+      quantity: 10,
+    },
+    {
+      id: 2,
+      img: "public/Hamburger.jpg",
+      name: "Hamburger",
+      detail:
+        "Lorem ipsum dolor sit amet, consectetur adipisicing elit. At dicta asperiores veniam repellat unde debitis quisquam magnam magni ut deleniti!",
+      price: 15,
+      quantity: 10,
+    },
+    {
+      id: 3,
+      img: "public/Cake.jpg",
+      name: "Cake",
+      detail:
+        "Lorem ipsum dolor sit amet, consectetur adipisicing elit. At dicta asperiores veniam repellat unde debitis quisquam magnam magni ut deleniti!",
+      price: 20,
+      quantity: 5,
+    },
+    {
+      id: 4,
+      img: "public/Bread.jpg",
+      name: "Bread",
+      detail:
+        "Lorem ipsum dolor sit amet, consectetur adipisicing elit. At dicta asperiores veniam repellat unde debitis quisquam magnam magni ut deleniti!",
+      price: 10,
+      quantity: 20,
+    },
+  ];
   useEffect(() => {
-    cart.map((item) => {
-      if (item.quantity < 1) {
-        return (item.quantity = 1);
-      }
-    });
-    products.map((item) => {
-      if (item.quantity < 0) {
-        return (item.quantity = 0);
-      }
-    });
-    localStorage.setItem("products", JSON.stringify(products));
-    localStorage.setItem("cart", JSON.stringify(cart));
+    localStorage.setItem("productList", JSON.stringify(productListFix));
+  }, []);
+
+  const [productList, setproductList] = useState<Product[]>(productListFix);
+
+  const [cartLocal, setCartLocal] = useState<CartProduct[]>(() => {
+    let cartLocal = localStorage.getItem("cart");
+    return cartLocal ? JSON.parse(cartLocal) : [];
   });
+  const [activeProduct, setActiveProduct] = useState<boolean>(false);
+  const [activeDelete, setActiveDelete] = useState<boolean>(false);
+  const [activeUpdate, setActiveUpdate] = useState<boolean>(false);
+  const clearNotification = () => {
+    setActiveProduct(false);
+    setActiveDelete(false);
+    setActiveUpdate(false);
+  };
+  const [totalPrice, setTotalPrice] = useState<number>(0);
+  const addProduct = (id: number) => {
+    const productChange = productList.find((item) => item.id === id);
+    if (productChange) {
+      clearNotification();
+      let productInCart = cartLocal.find((product) => product.idProduct === id);
+      if (productInCart) {
+        let newCart = cartLocal.map((product) =>
+          product.idProduct === id
+            ? {
+                ...product,
+                quantity: product.quantity + 1,
+                quantityChange: product.quantity + 1,
+              }
+            : product
+        );
+        setCartLocal(newCart);
+        setActiveProduct(true);
+      } else {
+        let newCart = [
+          ...cartLocal,
+          {
+            id: Math.floor(Math.random() * 100000000),
+            idProduct: productChange.id,
+            name: productChange.name,
+            price: productChange.price,
+            quantity: 1,
+            quantityChange: 1,
+          },
+        ];
+        setCartLocal(newCart);
+        setActiveProduct(true);
+      }
+    }
+  };
+
+  useEffect(() => {
+    localStorage.setItem("cart", JSON.stringify(cartLocal));
+
+    const newTotalPrice = cartLocal.reduce(
+      (total, product) => total + product.price * product.quantity,
+      0
+    );
+    setTotalPrice(newTotalPrice);
+  }, [cartLocal]);
+  const deleteItem = (id: number) => {
+    clearNotification();
+    let newCart = cartLocal.filter((product) => product.id !== id);
+    setCartLocal(newCart);
+    setActiveDelete(true);
+  };
+  const handleQuantity = (
+    id: number,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    clearNotification();
+    let value = +e.target.value;
+    let newCart = cartLocal.map((product) =>
+      product.id === id ? { ...product, quantityChange: value } : product
+    );
+    setCartLocal(newCart);
+  };
+  const update = (id: number) => {
+    clearNotification();
+    let newCart = cartLocal.map((product) =>
+      product.id === id
+        ? { ...product, quantity: product.quantityChange }
+        : product
+    );
+    setCartLocal(newCart);
+    setActiveUpdate(true);
+  };
   return (
-    <div>
+    <>
       <div className="container">
         <div className="page-header">
           <h1>Shopping Cart</h1>
         </div>
         <div className="row">
-          <div>
-            <div className="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-              <div className="panel panel-primary">
-                <div className="panel-heading">
-                  <h1 className="panel-title">List Products</h1>
-                </div>
-                <div className="panel-body" id="list-product">
-                  {addSuccess ? (
-                    <Modal
-                      addSuccess={addSuccess}
-                      updateSuccess={updateSuccess}
-                    />
-                  ) : (
-                    ""
-                  )}
-                  <ProductList products={products} addToCart={addToCart} />
-                </div>
+          <div className="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+            <div className="panel panel-primary">
+              <div className="panel-heading">
+                <h1 className="panel-title">List Products</h1>
+              </div>
+              <div className="panel-body" id="list-product">
+                {productList.map((product) => (
+                  <ProductList
+                    key={product.id}
+                    product={product}
+                    addProduct={addProduct}
+                  />
+                ))}
               </div>
             </div>
           </div>
-          <div>
-            <div className="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-              <div className="panel panel-danger">
-                <div className="panel-heading">
-                  <h1 className="panel-title">Your Cart</h1>
-                </div>
-                <div className="panel-body">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th width="4%">STT</th>
-                        <th>Name</th>
-                        <th width="15%">Price</th>
-                        <th width="4%">Quantity</th>
-                        <th width="25%">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody id="my-cart-body">
-                      <tr>
-                        <th scope="row">1</th>
-                        <td>Cake</td>
-                        <td>10 USD</td>
-                        <td>
-                          <input
-                            name="cart-item-quantity-1"
-                            type="number"
-                            defaultValue={15}
-                          />
-                        </td>
-                        <td>
-                          <a
-                            className="label label-info update-cart-item"
-                            data-product=""
-                          >
-                            Update
-                          </a>
-                          <a
-                            className="label label-danger delete-cart-item"
-                            data-product=""
-                          >
-                            Delete
-                          </a>
-                        </td>
-                      </tr>
-                      <tr>
-                        <th scope="row">2</th>
-                        <td>Hamburger</td>
-                        <td>15 USD</td>
-                        <td>
-                          <input
-                            name="cart-item-quantity-1"
-                            type="number"
-                            defaultValue={32}
-                          />
-                        </td>
-                        <td>
-                          <a
-                            className="label label-info update-cart-item"
-                            data-product=""
-                          >
-                            Update
-                          </a>
-                          <a
-                            className="label label-danger delete-cart-item"
-                            data-product=""
-                          >
-                            Delete
-                          </a>
-                        </td>
-                      </tr>
-                    </tbody>
-                    <tfoot id="my-cart-footer">
-                      <tr>
-                        <td colSpan={4}>
-                          There are <b>2</b> items in your shopping cart.
-                        </td>
-                        <td colSpan={2} className="total-price text-left">
-                          630 USD
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
+          <div className="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+            <div className="panel panel-danger">
+              <div className="panel-heading">
+                <h1 className="panel-title">Your Cart</h1>
               </div>
+              <div className="panel-body">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: "4%" }}>STT</th>
+                      <th>Name</th>
+                      <th style={{ width: "15%" }}>Price</th>
+                      <th style={{ width: "4%" }}>Quantity</th>
+                      <th style={{ width: "25%" }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="my-cart-body">
+                    {cartLocal.map((product, index) => (
+                      <Cart
+                        key={product.id}
+                        product={product}
+                        index={index}
+                        deleteItem={deleteItem}
+                        update={update}
+                        handleQuantityChange={handleQuantity}
+                      />
+                    ))}
+                  </tbody>
+                  <tfoot id="my-cart-footer">
+                    <tr>
+                      <td colSpan={4}>
+                        There are <b>{cartLocal.length}</b> items in your
+                        shopping cart.
+                      </td>
+                      <td colSpan={2} className="total-price text-left">
+                        {totalPrice} USD
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+            {cartLocal.length === 0 ? (
+              <div
+                className="alert alert-success"
+                role="alert"
+                id="mnotification"
+              >
+                There is no product in your cart !
+              </div>
+            ) : (
+              ""
+            )}
+            {activeProduct && (
               <div
                 className="alert alert-success"
                 role="alert"
@@ -216,10 +234,28 @@ export default function Template_shopping_cart() {
               >
                 Add to cart successfully
               </div>
-            </div>
+            )}
+            {activeDelete && (
+              <div
+                className="alert alert-danger"
+                role="alert"
+                id="mnotification"
+              >
+                Delete product successfully!
+              </div>
+            )}
+            {activeUpdate && (
+              <div
+                className="alert alert-warning"
+                role="alert"
+                id="mnotification"
+              >
+                Update product successfully!
+              </div>
+            )}
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
